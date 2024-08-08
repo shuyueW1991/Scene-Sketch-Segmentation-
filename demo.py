@@ -20,9 +20,9 @@ def main(args):
     preprocess =  Compose([Resize((224, 224), interpolation=BICUBIC), ToTensor(),
     Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])
 
-    Ours, preprocess = models.load("CS-ViT-B/16", device=device,cfg=cfg,train_bool=False)
+    Ours, preprocess = models.load("CS-ViT-B/16", device=device,cfg=cfg,train_bool=False) # the preprocess read from the model is exactly the same is the above assignment.
     state_dict = torch.load(cfg.checkpoint_path)
-    
+
     # Trained on 2 gpus so we need to remove the prefix "module." to test it on a single GPU
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
@@ -41,20 +41,21 @@ def main(args):
     sketch_img_path = cfg.sketch_path
     pil_img = Image.open(sketch_img_path).convert('RGB')
     binary_sketch = np.array(pil_img)
-    binary_sketch = np.where(binary_sketch>0, 255, binary_sketch)
+    binary_sketch = np.where(binary_sketch>0, 255, binary_sketch)  # Note that 0 represents black and 255 represents white.
     sketch_tensor = preprocess(pil_img).unsqueeze(0).to(device)
 
     with torch.no_grad():
-        text_features = models.encode_text_with_prompt_ensemble(Ours, classes, device,no_module=True)
-        redundant_features = models.encode_text_with_prompt_ensemble(Ours, [""], device,no_module=True)            
+        text_features = models.encode_text_with_prompt_ensemble(Ours, classes, device, no_module=True)
+        redundant_features = models.encode_text_with_prompt_ensemble(Ours, [""], device, no_module=True)            
 
     num_of_tokens = cfg.MODEL.PROMPT.NUM_TOKENS
     with torch.no_grad():
         sketch_features = Ours.encode_image(sketch_tensor,layers=[12],text_features=text_features-redundant_features,mode="test").squeeze(0)
-        sketch_features = sketch_features / sketch_features.norm(dim=1, keepdim=True)
-    similarity = sketch_features @ (text_features - redundant_features).t()
-    patches_similarity = similarity[0, num_of_tokens +1:, :]
-    pixel_similarity = get_similarity_map(patches_similarity.unsqueeze(0),pil_img.size).cpu()
+        sketch_features = sketch_features / sketch_features.norm(dim=1, keepdim=True) ## in the case of  `classes`` of 4 elements, shape [4, 200, 512]
+    similarity = sketch_features @ (text_features - redundant_features).t()  # the shape of `similarity` is [4, 200, 4]
+    patches_similarity = similarity[0, num_of_tokens +1:, :]   # [196, 4]
+    # print('pil_img.size:',pil_img.size) # [512, 512]
+    pixel_similarity = get_similarity_map(patches_similarity.unsqueeze(0),pil_img.size).cpu() # [512, 512, 4]
     # visualize_attention_maps_with_tokens(pixel_similarity, classes)
     pixel_similarity[pixel_similarity<cfg.threshold] = 0
     pixel_similarity_array = pixel_similarity.cpu().numpy().transpose(2,0,1)

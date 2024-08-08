@@ -1,0 +1,50 @@
+python train.py --config-file vpt/configs/prompt/cub.yaml MODEL.PROMPT.NUM_TOKENS 3 MODEL.PROMPT.LOG "first_run" save_every 5 learning_rate 1e-6 bz 16  WANDB False 
+
+
+CUDA_VISIBLE_DEVICES=2 python train.py --config-file vpt/configs/prompt/cub.yaml MODEL.PROMPT.NUM_TOKENS 3 MODEL.PROMPT.LOG "first_run" save_every 5 learning_rate 1e-6 bz 16  WANDB False 
+
+
+auxilary.py line 16 -->17
+
+
+
+pip install tqdm
+pip install simplejson
+pip install termcolor
+pip install iopath
+pip install regex
+pip install transformers
+pip install open-clip-torch
+pip install fvcore
+pip install matplotlib
+pip install nltk
+pip install gresenham
+pip install scipy
+pip install scikit-learning
+pip install wandb 
+
+
+go to local mac, type `python `:
+>> import nltk
+>> nltk.download('punkt')
+>> nltk.download('averaged_perceptron_tagger')
+
+
+in remote server, create folder <nltk_data>.
+upload from local mac <tokenizers>, <taggers> to it.
+
+
+cp -r nltk_data/  scene_sketch_seg/
+
+
+
+CUDA_VISIBLE_DEVICES=3 nohup python demo.py --config-file vpt/configs/prompt/cub.yaml checkpoint_path checkpoint/sketch_seg_best_miou.pth sketch_path demo/sketch_1.png output_path demo/results/output.png threshold 0.6 > demo20240808.log &
+
+
+CUDA_VISIBLE_DEVICES=3,4,5 nohup python train.py --config-file vpt/configs/prompt/cub.yaml MODEL.PROMPT.NUM_TOKENS 3 MODEL.PROMPT.LOG "first_run" save_every 5 learning_rate 1e-6 bz 16  WANDB False > train_20240807.log &
+
+
+in `demo.py`, uncomment  `visualize_attention_maps_with_tokens(pixel_similarity, classes)
+and thereby, in `utils.py`, uncomment `plt.savefig('attention_maps.png')` in `def visualize_attention_maps_with_tokens(pixel_similarity, tokens):`
+
+

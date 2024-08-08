@@ -59,9 +59,8 @@ def get_similarity_map(sm, shape):
     sm = (sm - sm.min(1, keepdim=True)[0]) / (sm.max(1, keepdim=True)[0] - sm.min(1, keepdim=True)[0]) # torch.Size([1, 196, 1])
 
     # reshape
-    side = int(sm.shape[1] ** 0.5) # square output, side = 14
+    side = int(sm.shape[1] ** 0.5) # square output, side = 14  
     sm = sm.reshape(sm.shape[0], side, side, -1).permute(0, 3, 1, 2) 
-
     # interpolate
     sm = torch.nn.functional.interpolate(sm, shape, mode='bilinear') 
     sm = sm.permute(0, 2, 3, 1) 
@@ -72,7 +71,10 @@ def get_similarity_map(sm, shape):
 def display_segmented_sketch(pixel_similarity_array,binary_sketch,classes,classes_colors,save_path=None,live=False):
     # Find the class index with the highest similarity for each pixel
     class_indices = np.argmax(pixel_similarity_array, axis=0)
-    # Create an HSV image placeholder
+    # axis=0 indicates that the operation will be performed along the first dimension (height).
+    # For each position (x, y) in the 512x512 grid, the function will find the index of the maximum value among the 4 channels.
+
+    # Create an HSV image placeholder, hue, saturation, value
     hsv_image = np.zeros(class_indices.shape + (3,))  # Shape (512, 512, 3)
     hsv_image[..., 2] = 1  # Set Value to 1 for a white base
     
@@ -82,7 +84,7 @@ def display_segmented_sketch(pixel_similarity_array,binary_sketch,classes,classe
         hsv_color = rgb_to_hsv(rgb_color)
         mask = class_indices == i
         if i < len(classes):  # For the first N-2 classes, set color based on similarity
-            hsv_image[..., 0][mask] = hsv_color[0, 0, 0]  # Hue
+            hsv_image[..., 0][mask] = hsv_color[0, 0, 0]  # Hue, note that the shape of `hsv_color` is (1, 1, 3).
             hsv_image[..., 1][mask] = pixel_similarity_array[i][mask] > 0  # Saturation
             hsv_image[..., 2][mask] = pixel_similarity_array[i][mask]  # Value
         else:  # For the last two classes, set pixels to black
@@ -91,8 +93,9 @@ def display_segmented_sketch(pixel_similarity_array,binary_sketch,classes,classe
             hsv_image[..., 2][mask] = 0  # Value set to 0, making it black
     
     mask_tensor_org = binary_sketch[:,:,0]/255
-    hsv_image[mask_tensor_org==1] = [0,0,1]
-
+    hsv_image[mask_tensor_org==1] = [0,0,1] # effectively makes pixels that should be white in original image white.
+    # remember that `pixel_similarity_array` is based on transformed augmented image, not original image.
+    # Therefore,  `binary_sketch`` is needed here.
     # Convert the HSV image back to RGB to display and save
     rgb_image = hsv_to_rgb(hsv_image)
 
@@ -280,8 +283,8 @@ def visualize_attention_maps_with_tokens(pixel_similarity, tokens):
         ax.annotate(tokens[i], xy=(0.5, -0.1), xycoords='axes fraction', ha='center')
 
     plt.tight_layout()
-    # plt.savefig('attention_maps.png')
-    plt.show()  
+    plt.savefig('attention_maps.png')
+    # plt.show()  
     
 ## Sketch Preprocessing tools
 
