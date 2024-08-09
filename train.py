@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from dataset import fscoco_train
 from vpt.launch import default_argument_parser
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+
 from utils import setup, get_similarity_map,zero_clapping,get_train_classes,\
                 tensor_to_binary_img, sketch_text_pairs, get_threshold,triplet_loss_func_L1
 import wandb
@@ -17,6 +18,7 @@ import os
 def main(args):
     # set up cfg and args
     cfg = setup(args)
+    print('cfg', cfg)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     preprocess_no_T =  Compose([Resize((224, 224), interpolation=BICUBIC), #ToTensor(),
@@ -43,7 +45,8 @@ def main(args):
         wandb.init(project="sketch_segmentation", name=cfg.MODEL.PROMPT.LOG)
     
     num_of_tokens = cfg.MODEL.PROMPT.NUM_TOKENS
-    num_epochs = 20
+    # num_epochs = 20
+    num_epochs = 21
     
     print("Starting training")
     for epoch in range(num_epochs):
@@ -55,7 +58,9 @@ def main(args):
             sketches_w_binary = tensor_to_binary_img(sketches_w,device)
             sketches_b =  1 - sketches_w_binary
             tokenized_captions = clip.tokenize(captions_pair).to(device)
-            tokenized_classes = clip.tokenize(classes).to(device)            
+            tokenized_classes = clip.tokenize(classes).to(device)         
+            # here, _w is the white sketch and _b is the black sketch
+            # captions and classes are different.   
 
             scene_features,class_features= model(sketches_w, tokenized_classes,layer_num=[12],return_logits=False,mode="train")
             
@@ -101,7 +106,10 @@ def main(args):
         if epoch % cfg.save_every == 0:
             os.makedirs(f"checkpoint/{cfg.MODEL.PROMPT.LOG}", exist_ok=True)
             torch.save(model.state_dict(), f"checkpoint/{cfg.MODEL.PROMPT.LOG}/model_{epoch}.pth")
-        
+
+    print("Ending training")
+
+
 if __name__ == '__main__':
     args = default_argument_parser().parse_args()    
     main(args)

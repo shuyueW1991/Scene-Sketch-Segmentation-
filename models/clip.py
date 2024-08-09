@@ -271,12 +271,12 @@ def encode_text_with_prompt_ensemble(model, texts, device, prompt_templates=None
             class_embeddings = model.encode_text(prompted_t)
         else:
             class_embeddings = model.module.encode_text(prompted_t)
-        class_embeddings = class_embeddings.clone() / class_embeddings.norm(dim=-1, keepdim=True)
+        class_embeddings = class_embeddings.clone() / class_embeddings.norm(dim=-1, keepdim=True)  # normalize. class_embedings.norm(dim=-1, keepdim=True) is of shape [85,1].
         class_embedding = class_embeddings.mean(dim=0) # mean of all prompts, from [85,512] to [512]
         # class_embedding /= class_embedding.norm()
-        class_embedding = class_embedding.clone() / class_embedding.norm() # change here
+        class_embedding = class_embedding.clone() / class_embedding.norm() # change here  # normalize
         text_features.append(class_embedding)
-    text_features = torch.stack(text_features, dim=1).to(device).t()
+    text_features = torch.stack(text_features, dim=1).to(device).t() ## now text_features is of shape [length of texts, 512]
 
     return text_features
 
